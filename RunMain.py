@@ -247,26 +247,14 @@ def SaveData():
     time.sleep(2)
 
 def CalcMove(a, d): #Uses the data from GrabPts to determine what angle to rotate to and distance to travel
-    DistThresh = 0.10 #Minimum distance threshold for function to base calculations. Distance in meters  
+    DistThresh = 3 #Minimum distance threshold for function to base calculations. Distance in meters  
     AngStep = 30 #Step size for determining which measured distances are farther away
-
-    DistIdeal = DistThresh*1.5 #Value used to determine if SPIKE moves in that given direction based on surpassing an ideal threshold
 
     #Attempt to calculate indices. Otherwise, return a "False" Flag 
     try:
         indx = [idx for idx, val in enumerate(d) if val > DistThresh] #Gives indices of list "d" where values are above DistThresh
 
-        #Grab angle and distance values that correspond with indx values we calculated
-        a_thresh = list(itemgetter(*indx)(a)) 
-        d_thresh = list(itemgetter(*indx)(d))
-
-        #Sort the a and d lists together as soon as they come in to avoid data mixups. Sort ascendingly according to a
-        sorted_lists = sorted(zip(a_thresh, d_thresh))
-        
-        tuples = zip(*sorted_lists)
-        a_sorted, d_sorted = [ list(tuple) for tuple in  tuples] #Splits up newly sorted lists        
-        
-    except: #What to do if try statement fails
+    except:
         print("SUPREME FAILURE")
         success = False
         DesAng = 0 
@@ -274,35 +262,43 @@ def CalcMove(a, d): #Uses the data from GrabPts to determine what angle to rotat
 
         return success, DesAng, DesDist
 
+    AngThresh = list(itemgetter(*indx)(a)) #Zips elements of "a" with indices in "indx" to give list of all angles above DistThresh. Sorts in ascending order as well
+    
+    ##----Iterate to find where most, farthest clusters are
+    i = 0 #Increments based on the value of AngStep
+    LoopCount = 0 #Counter variable indicating how many times we've iterated through the loop  
+    NumMaxElements = 0 #Tracks what the highest number of elements was between all loo iterations
+    MaxLoop = 0 #Variable updated with the version of the loop determined to have the highest number of values
 
-    ##----Iterate to find the first cluster where median distance surpasses DistIdeal
-    i = a_sorted[0] #Start at the minimum angle filtered in the previous step
-    MaxDist = 0 #Keeps track of the farthest distance calculated. Used in case DistIdeal is never surpassed 
-    LoopCount = 0 #Used to track which loop iteration loop exited on
+    while i < 360: #While loop will analyze AngThresh values by chunks to determine where the largest cluster of distances are
+        CurrElements = len(list(x for x in AngThresh if i < x <= i+AngStep)) #Determines how many values in the list fall within the angle range of AngStep
+        LoopCount += 1
 
-    while i <= a_sorted[-1]: #While loop runs until angle step surpasses maximum angle filtered by previous step        
-        CurrElements = [t for t, x in enumerate(a_sorted) if i <= x < i+AngStep] #Finds indices in a_sorted where values fall within certain range
-
-        try:
-            medDist = statistics.median(itemgetter(*CurrElements)(d_sorted))
-            LoopCount += 1
-        except:
-            medDist = 0
-            LoopCount += 1
-
-        if medDist >= DistIdeal:
-            DesAng = round((i)+(AngStep/2)) #Should be whatever angle "i" we're on, plus half of AngStep to go straight down the middle
-            DesDist = round(medDist*.8, 1) #Go X% of whatever the desired distance was calculated to be
-            break
-
-        else: 
+        if CurrElements >= NumMaxElements: #If greater than or equal to, update NumMaxElements, keep track of loop iteration
+            NumMaxElements = CurrElements #Update max elements
+            MaxLoop = LoopCount #Update which version of the loop we were counted in
+            
             i += AngStep
 
-            if medDist >= MaxDist: #Update MaxDist with the current medDist if it's larger.
-                MaxDist = medDist
+        else: #If not greater than, just move on to next step size
+            i += AngStep
+
+    print("MaxLoop =", MaxLoop)
+    print("LoopCount =", LoopCount)
+
+    DesAng = round((MaxLoop*AngStep)-(AngStep/2)) #Calculates what angle we want to rotate to
+
+    IndxDist = [i for i, x in enumerate(a) if x <= DesAng+(AngStep/2) and x >= DesAng-(AngStep/2)] #Use AngStep to determine the upper and lower half indices we're looking for
+    MedDist = statistics.median(itemgetter(*IndxDist)(d)) #Calculates the median distance from the index values
+
+    DesDist = round(0.75*MedDist,1) #Distance we want SPIKE to travel. Scaled down to avoid crashing
+
+    print("DesAng =", DesAng)
+    print("DesDist =", DesDist)
 
     success = True
     return success, DesAng, DesDist
+
 
     
 def opt1(): #Request movement information, then Grab Data
@@ -453,7 +449,7 @@ def opt6(): #Automated Mode
         while not success:
             #Lidar intialization and data grab
             LidarComm()
-            (x,y,a,d) = GrabPts(8000)
+            (x,y,a,d) = GrabPts(2000)
             serialComm(Stop_Scan)
             ser.read(ser.inWaiting()) #Flush the buffer
 
