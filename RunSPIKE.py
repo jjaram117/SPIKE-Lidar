@@ -22,11 +22,11 @@ def NecSetups(): #Sends commands to the SPIKE REPL necessary setups: libraries, 
     ser.write(b'p = hub.port.A.motor.pair(hub.port.B.motor)') #Switch out the 'A' and 'B' depending on the ports motors are attached to
 
 #Physical build functions
-def Convert(DesDist, diam): #Conversion from Desired Distance (DesDist) to number of rotations (NumRot) to number of degrees(NumDegrees) motors need to spin
-    calibDegree = 1.6 #Calibration value. Used to increase/decrease the degrees traveled in case the SPIKE needs a little more/less to be accurate
+def Convert(DesDist, diam, calibVal): #Conversion from Desired Distance (DesDist) to number of rotations (NumRot) to number of degrees(NumDegrees) motors need to spin
+                                      #Also passes through a calibVal to more easily adjust LinearSPIKE
     
     NumRot = DesDist/(math.pi*diam) #Divide DesDist by circumference of the wheels to determine necessary rotations to travel distance
-    NumDegrees = round(NumRot*360*calibDegree) #How many degrees motors will rotate for to travel desired distance. Only takes in whole Numbers (positive or negative), no decimals allowed
+    NumDegrees = round(NumRot*360*calibVal) #How many degrees motors will rotate for to travel desired distance. Only takes in whole Numbers (positive or negative), no decimals allowed
     return NumDegrees
 
 def RotVari(diam, WheelDist): #Calculates number of rotations to achieve 360 EV3 spin. Based on wheel diameter and distance between the wheels
@@ -59,11 +59,13 @@ def DistCommand(DesDist, NumDegrees): #Used to detect if the desired distance is
     
 #Movement Functions
 def LinearSPIKE(DesDist): #Move the SPIKE linearly
+    calibVal = 0.8 #Calibration value for linear movement
+    
     if DesDist == 0:
         return #No need to do anything if we don't wish to move linearly
     
     else:
-        NumDegrees = Convert(DesDist, diam)
+        NumDegrees = Convert(DesDist, diam, calibVal)
 
         commandSend = DistCommand(DesDist, NumDegrees)
         
@@ -98,7 +100,7 @@ def AngCommand(NumDegrees): #Used to detect if the desired angle indicates to ro
     
 
 def RotateSPIKE(DesAng, NeccRot): #Rotate SPIKE to the desired angle. Calculates based on the necessary rotations determined from the "RotVari" function     
-    calibAngle = 1
+    calibVal = 1 #Calibration value for rotational movement
     
     if DesAng == 0:
         return #No need to do anything if we don't wish to rotate
@@ -106,7 +108,7 @@ def RotateSPIKE(DesAng, NeccRot): #Rotate SPIKE to the desired angle. Calculates
     else:
         AngMove = DesAng/360 #Ratio between desired turning angle and 360 of a full circle
         NumRot = AngMove*NeccRot #Multiply necessary rotations and turn ratio to determine number of rotations for specific desired input
-        NumDegrees = round(NumRot*360*calibAngle) #Calculate degrees motors need to spin for to rotate the SPIKE
+        NumDegrees = round(NumRot*360*calibVal) #Calculate degrees motors need to spin for to rotate the SPIKE
         
         commandSend = AngCommand(NumDegrees)
         
