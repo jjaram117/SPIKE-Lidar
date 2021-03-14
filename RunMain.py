@@ -170,6 +170,8 @@ def plotter(x,y):
     
     #Plotting data
     plt.scatter(x,y)
+    #plt.plot(x,y)
+    plt.draw()
 
     #Formatting plot
     plt.title('Lidar Mapping Data')
@@ -177,28 +179,35 @@ def plotter(x,y):
     plt.xlabel('X-axis')
     plt.axis('equal') #Equalizing the axis ratios
     
-    axisScale = 1.3 #variable to change the "zoom" of the plot that's graphed
+#    axisScale = 1.3 #variable to change the "zoom" of the plot that's graphed
     
-    xmin = min(x)
-    xmax = max(x)
-    ymin = min(y)
-    ymax =max(y)
-    xrange = xmax-xmin
-    yrange = ymax-ymin
-    
+#    xmin = min(x)
+#    xmax = max(x)
+#    ymin = min(y)
+#    ymax =max(y)
+#    xrange = xmax-xmin
+#    yrange = ymax-ymin
+#    
     #ax.set_xlim([-xmax*axisScale,xmax*axisScale]) #Setting axis limits based on data. Keeps plot consistent after inverting axis
     #ax.set_ylim([-ymax*axisScale,ymax*axisScale])
 
     #ax.set_xlim([-xrange/2*axisScale,xrange/2*axisScale]) #Setting axis limits based on data. Keeps plot consistent after inverting axis
     #ax.set_ylim([-yrange/2*axisScale,yrange/2*axisScale])
-
+    
     plt.gca().invert_yaxis() #Flips y axis to match physical orientation to the lidar
 
-    #plt.show(block=False)
-    plt.ion()
+    #plt.show()
+    print("Your points have been plotted\n")
+    
     plt.show()
-    plt.pause(0.001)
-    #time.sleep(1)
+    #plt.ioff()
+    
+    #plt.show()
+    #plt.show()
+    
+    #plt.ion()
+#    plt.pause(0.001)
+    time.sleep(.5)
 
 def LidarComm(): #Compact method of starting the communication with the Lidar
     serialComm(Start_Scan)
@@ -247,12 +256,13 @@ def SaveData():
     time.sleep(2)
 
 def CalcMove(a, d): #Uses the data from GrabPts to determine what angle to rotate to and distance to travel
-    DistThresh = 3 #Minimum distance threshold for function to base calculations. Distance in meters  
+    DistThresh = .5 #Minimum distance threshold for function to base calculations. Distance in meters  
     AngStep = 30 #Step size for determining which measured distances are farther away
 
     #Attempt to calculate indices. Otherwise, return a "False" Flag 
     try:
         indx = [idx for idx, val in enumerate(d) if val > DistThresh] #Gives indices of list "d" where values are above DistThresh
+        AngThresh = list(itemgetter(*indx)(a)) #Zips elements of "a" with indices in "indx" to give list of all angles above DistThresh. Sorts in ascending order as well
 
     except:
         print("SUPREME FAILURE")
@@ -262,7 +272,7 @@ def CalcMove(a, d): #Uses the data from GrabPts to determine what angle to rotat
 
         return success, DesAng, DesDist
 
-    AngThresh = list(itemgetter(*indx)(a)) #Zips elements of "a" with indices in "indx" to give list of all angles above DistThresh. Sorts in ascending order as well
+    
     
     ##----Iterate to find where most, farthest clusters are
     i = 0 #Increments based on the value of AngStep
@@ -283,8 +293,8 @@ def CalcMove(a, d): #Uses the data from GrabPts to determine what angle to rotat
         else: #If not greater than, just move on to next step size
             i += AngStep
 
-    print("MaxLoop =", MaxLoop)
-    print("LoopCount =", LoopCount)
+    #print("MaxLoop =", MaxLoop)
+    #print("LoopCount =", LoopCount)
 
     DesAng = round((MaxLoop*AngStep)-(AngStep/2)) #Calculates what angle we want to rotate to
 
@@ -325,7 +335,7 @@ def opt1(): #Request movement information, then Grab Data
     if DesAng == 0 and DesDist ==0: #No need to go through Calculations
         plotter(x,y)
 
-        print("Your points have been plotted\n")
+        #print("Your points have been plotted\n")
     
     else:
         x_transf,y_transf = TransformData(x,y,DesAng, DesDist)
