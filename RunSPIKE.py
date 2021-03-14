@@ -59,7 +59,7 @@ def DistCommand(DesDist, NumDegrees): #Used to detect if the desired distance is
     
 #Movement Functions
 def LinearSPIKE(DesDist): #Move the SPIKE linearly
-    calibVal = 0.8 #Calibration value for linear movement
+    calibVal = 1                                                                  #Calibration value for linear movement
     
     if DesDist == 0:
         return #No need to do anything if we don't wish to move linearly
@@ -69,7 +69,7 @@ def LinearSPIKE(DesDist): #Move the SPIKE linearly
 
         commandSend = DistCommand(DesDist, NumDegrees)
         
-        print(commandSend)
+        #print(commandSend)
         #Writing to the SPIKE 
         ser.write(commandSend)
 
@@ -100,7 +100,7 @@ def AngCommand(NumDegrees): #Used to detect if the desired angle indicates to ro
     
 
 def RotateSPIKE(DesAng, NeccRot): #Rotate SPIKE to the desired angle. Calculates based on the necessary rotations determined from the "RotVari" function     
-    calibVal = 1 #Calibration value for rotational movement
+    calibVal = 1.05 #Calibration value for rotational movement
     
     if DesAng == 0:
         return #No need to do anything if we don't wish to rotate
@@ -127,7 +127,7 @@ def RotateSPIKE(DesAng, NeccRot): #Rotate SPIKE to the desired angle. Calculates
 global diam, pwmVal, WheelDist
 
 diam = 0.055 #Diameter of the wheels in Meters
-pwmVal = 50 #pwm to set default motor speed. -100 to 100
+pwmVal = 45 #pwm to set default motor speed. -100 to 100
 WheelDist = 0.143 #Distance between the centers of the wheels (axle distance)
 
 DesAng = float(sys.argv[1]) #Rotating angle. Positive for clockwise, negative for counterclockwise
