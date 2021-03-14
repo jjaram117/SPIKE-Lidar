@@ -247,7 +247,7 @@ def SaveData():
     time.sleep(2)
 
 def CalcMove(a, d): #Uses the data from GrabPts to determine what angle to rotate to and distance to travel
-    DistThresh = 4 #Minimum distance threshold for function to base calculations. Distance in meters  
+    DistThresh = 0.10 #Minimum distance threshold for function to base calculations. Distance in meters  
     AngStep = 30 #Step size for determining which measured distances are farther away
 
     DistIdeal = DistThresh*1.5 #Value used to determine if SPIKE moves in that given direction based on surpassing an ideal threshold
@@ -453,7 +453,7 @@ def opt6(): #Automated Mode
         while not success:
             #Lidar intialization and data grab
             LidarComm()
-            (x,y,a,d) = GrabPts(2000)
+            (x,y,a,d) = GrabPts(8000)
             serialComm(Stop_Scan)
             ser.read(ser.inWaiting()) #Flush the buffer
 

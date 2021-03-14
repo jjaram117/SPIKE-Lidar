@@ -23,7 +23,7 @@ def NecSetups(): #Sends commands to the SPIKE REPL necessary setups: libraries, 
 
 #Physical build functions
 def Convert(DesDist, diam): #Conversion from Desired Distance (DesDist) to number of rotations (NumRot) to number of degrees(NumDegrees) motors need to spin
-    calibDegree = 1 #Calibration value. Used to increase/decrease the degrees traveled in case the SPIKE needs a little more/less to be accurate
+    calibDegree = 1.6 #Calibration value. Used to increase/decrease the degrees traveled in case the SPIKE needs a little more/less to be accurate
     
     NumRot = DesDist/(math.pi*diam) #Divide DesDist by circumference of the wheels to determine necessary rotations to travel distance
     NumDegrees = round(NumRot*360*calibDegree) #How many degrees motors will rotate for to travel desired distance. Only takes in whole Numbers (positive or negative), no decimals allowed
@@ -125,7 +125,7 @@ def RotateSPIKE(DesAng, NeccRot): #Rotate SPIKE to the desired angle. Calculates
 global diam, pwmVal, WheelDist
 
 diam = 0.055 #Diameter of the wheels in Meters
-pwmVal = 100 #pwm to set default motor speed. -100 to 100
+pwmVal = 50 #pwm to set default motor speed. -100 to 100
 WheelDist = 0.143 #Distance between the centers of the wheels (axle distance)
 
 DesAng = float(sys.argv[1]) #Rotating angle. Positive for clockwise, negative for counterclockwise
