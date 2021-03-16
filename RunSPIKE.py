@@ -129,7 +129,6 @@ def RotateSPIKE(DesAng, NeccRot): #Rotate SPIKE to the desired angle. Calculates
             ser.write(b'hub.port.A.motor.get()[0]\r\n')
             reply = ser.readline()
             val = reply.decode() #Check this
-
             
             if (val[0] == '0'):
                 busy = True
@@ -156,9 +155,8 @@ NeccRot = RotVari(diam, WheelDist) #Calculate rotation ratio for the specific ro
 
 #--------MAIN CODE--------#
 RotateSPIKE(DesAng, NeccRot) #SPIKE will rotate first, then linearate
-#time.sleep(4)
 LinearSPIKE(DesDist)
 
-print("\nHave finished moving")
+time.sleep(0.1)
 
 endSerial() #Close serial port to SPIKE
