@@ -18,7 +18,7 @@ def endSerial(): #End the communciation with the SPIKE. Likely only when the pro
     ser.close()
 
 def NecSetups(): #Sends commands to the SPIKE REPL necessary setups: libraries, motorpair setup
-    ser.write(b'import hub\r\n')
+    ser.write(b'import hub\r\n') 
     ser.write(b'p = hub.port.A.motor.pair(hub.port.B.motor)') #Switch out the 'A' and 'B' depending on the ports motors are attached to
 
 #Physical build functions
@@ -68,15 +68,22 @@ def LinearSPIKE(DesDist): #Move the SPIKE linearly
         NumDegrees = Convert(DesDist, diam, calibVal)
 
         commandSend = DistCommand(DesDist, NumDegrees)
-        
-        #print(commandSend)
-        #Writing to the SPIKE 
+
         ser.write(commandSend)
 
         #Serial read to confirm completion 
-        # while motor.busy(1):
-        #     ser.read(ser.inWaiting())
-        #     time.sleep(0.1)
+        time.sleep(2) #Pauses to avoid reading before motors have actually started moving
+        busy = False
+        while not busy:
+            ser.write(b'hub.port.A.motor.get()[0]\r\n')
+            reply = ser.readline()
+            val = reply.decode() #Check this
+            
+            if (val[0] == '0'):
+                busy = True
+
+            time.sleep(0.01)
+
 
         
 def AngCommand(NumDegrees): #Used to detect if the desired angle indicates to rotate counter/clockwise or if it's zero. Returns string to be executed
@@ -116,9 +123,18 @@ def RotateSPIKE(DesAng, NeccRot): #Rotate SPIKE to the desired angle. Calculates
         ser.write(commandSend)
 
         #Serial read to confirm completion 
-        # while motor.busy(1):
-        #     ser.read(ser.inWaiting())
-        #     time.sleep(0.1)
+        time.sleep(2) #Pauses to avoid reading before motors have actually started moving
+        busy = False
+        while not busy:
+            ser.write(b'hub.port.A.motor.get()[0]\r\n')
+            reply = ser.readline()
+            val = reply.decode() #Check this
+
+            
+            if (val[0] == '0'):
+                busy = True
+
+            time.sleep(0.01)
 
 
 
@@ -140,8 +156,9 @@ NeccRot = RotVari(diam, WheelDist) #Calculate rotation ratio for the specific ro
 
 #--------MAIN CODE--------#
 RotateSPIKE(DesAng, NeccRot) #SPIKE will rotate first, then linearate
-time.sleep(4)
+#time.sleep(4)
 LinearSPIKE(DesDist)
 
+print("\nHave finished moving")
 
 endSerial() #Close serial port to SPIKE
