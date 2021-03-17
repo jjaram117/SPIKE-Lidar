@@ -169,9 +169,11 @@ def plotter(x,y):
     plt.arrow(0,0,0.07,0, shape='full', lw=.5, length_includes_head=True, head_width=.015, color='r') #Arrow to show lidar direction 
     
     #Plotting data
+    
     plt.scatter(x,y)
+    
     #plt.plot(x,y)
-    plt.draw()
+    
 
     #Formatting plot
     plt.title('Lidar Mapping Data')
@@ -179,35 +181,31 @@ def plotter(x,y):
     plt.xlabel('X-axis')
     plt.axis('equal') #Equalizing the axis ratios
     
-#    axisScale = 1.3 #variable to change the "zoom" of the plot that's graphed
+    axisScale = .8 #variable to change the "zoom" of the plot that's graphed
     
-#    xmin = min(x)
-#    xmax = max(x)
-#    ymin = min(y)
-#    ymax =max(y)
-#    xrange = xmax-xmin
-#    yrange = ymax-ymin
+    xmin = min(x)
+    xmax = max(x)
+    ymin = min(y)
+    ymax =max(y)
+    xrange = xmax-xmin
+    yrange = ymax-ymin
 #    
     #ax.set_xlim([-xmax*axisScale,xmax*axisScale]) #Setting axis limits based on data. Keeps plot consistent after inverting axis
     #ax.set_ylim([-ymax*axisScale,ymax*axisScale])
 
-    #ax.set_xlim([-xrange/2*axisScale,xrange/2*axisScale]) #Setting axis limits based on data. Keeps plot consistent after inverting axis
-    #ax.set_ylim([-yrange/2*axisScale,yrange/2*axisScale])
+    ax.set_xlim([-xrange/2*axisScale,xrange/2*axisScale]) #Setting axis limits based on data. Keeps plot consistent after inverting axis
+    ax.set_ylim([-yrange/2*axisScale,yrange/2*axisScale])
     
     plt.gca().invert_yaxis() #Flips y axis to match physical orientation to the lidar
 
     #plt.show()
+    
+#    plt.ion()
+    plt.draw()
+    plt.pause(0.001)
+    #time.sleep(.5)
+    
     print("Your points have been plotted\n")
-    
-    plt.show()
-    #plt.ioff()
-    
-    #plt.show()
-    #plt.show()
-    
-    #plt.ion()
-#    plt.pause(0.001)
-    time.sleep(.5)
 
 def LidarComm(): #Compact method of starting the communication with the Lidar
     serialComm(Start_Scan)
