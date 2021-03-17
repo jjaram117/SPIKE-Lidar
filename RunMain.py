@@ -323,7 +323,8 @@ def opt1(): #Request movement information, then Grab Data
     
     time.sleep(0.1)
     RunSPIKE(DesAng, DesDist) #Send movement command via terminal to the SPIKE
-
+    time.sleep(0.2)
+    
     LidarComm()
 
     (x,y,a,d) = GrabPts(num)
@@ -536,4 +537,4 @@ while True:
 
     else:
         print("Returning you to Options Table\n")
-        time.sleep(2)
+        time.sleep(1)

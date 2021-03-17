@@ -29,7 +29,7 @@ def Convert(DesDist, diam, calibVal): #Conversion from Desired Distance (DesDist
     NumDegrees = round(NumRot*360*calibVal) #How many degrees motors will rotate for to travel desired distance. Only takes in whole Numbers (positive or negative), no decimals allowed
     return NumDegrees
 
-def RotVari(diam, WheelDist): #Calculates number of rotations to achieve 360 EV3 spin. Based on wheel diameter and distance between the wheels
+def RotVari(diam, WheelDist): #Calculates number of rotations to achieve 360 SPIKE spin. Based on wheel diameter and distance between the wheels
     Circumf = math.pi*diam #Calculate circumference of the wheels
     TurnCircumf = WheelDist*math.pi #Circumference of the circle the EV3 wheels travel upon when rotating in place 
     NeccRot = TurnCircumf/Circumf #Rotations required for to achieve full 360 rotation of circle in "TurnCircumf"  
@@ -66,24 +66,31 @@ def LinearSPIKE(DesDist): #Move the SPIKE linearly
     
     else:
         NumDegrees = Convert(DesDist, diam, calibVal)
-
         commandSend = DistCommand(DesDist, NumDegrees)
-
         ser.write(commandSend)
 
-        #Serial read to confirm completion 
-        time.sleep(2) #Pauses to avoid reading before motors have actually started moving
+        #Calculate necessary sleep time to avoid motor buffer fill during serial.read()
+        wheelNecc = DesDist/(math.pi*diam) #Neccesary rotations wheels must rotate to travel DesDist
+        rps = (rpmEst*pwmVal/100)/60 #Rev. per second. Based on estimated rpm for current build, current pwm, divided by 60 to seconds
+        timeSleep = abs(wheelNecc/rps)
+#        print("timeSleep =", timeSleep)
+
+        #Serial read to confirm completion
+        time.sleep(timeSleep) #Pauses for amount of time proportional for DesDist, otherwise the SPIKE buffer freaks out
         busy = False
         while not busy:
             ser.write(b'hub.port.A.motor.get()[0]\r\n')
             reply = ser.readline()
             val = reply.decode() #Check this
-            
+            #print("val Linear = ", val)
             if (val[0] == '0'):
                 busy = True
 
             time.sleep(0.01)
-
+            
+#    print("final reply = ", reply)
+#    print("val Linear final = ", val)       
+#    print("Done Linearating")
 
         
 def AngCommand(NumDegrees): #Used to detect if the desired angle indicates to rotate counter/clockwise or if it's zero. Returns string to be executed
@@ -114,7 +121,7 @@ def RotateSPIKE(DesAng, NeccRot): #Rotate SPIKE to the desired angle. Calculates
     
     else:
         AngMove = DesAng/360 #Ratio between desired turning angle and 360 of a full circle
-        NumRot = AngMove*NeccRot #Multiply necessary rotations and turn ratio to determine number of rotations for specific desired input
+        NumRot = AngMove*NeccRot #Multiply necessary rotations and turn ratio to determine number of rotations for specific DesAng
         NumDegrees = round(NumRot*360*calibVal) #Calculate degrees motors need to spin for to rotate the SPIKE
         
         commandSend = AngCommand(NumDegrees)
@@ -122,27 +129,34 @@ def RotateSPIKE(DesAng, NeccRot): #Rotate SPIKE to the desired angle. Calculates
         #Writing to the SPIKE 
         ser.write(commandSend)
 
+     #Calculate necessary sleep time to avoid motor buffer fill during serial.read()
+        wheelNecc = 0.45*NumRot #Ratio determining how many rotations are necessary to achieve DesAng. A severe decrease was necessary to calibrate, however
+        rps = (rpmEst*pwmVal/100)/60 #Rev. per second. Based on estimated rpm for current build, current pwm, divided by 60 to second
+        timeSleep = abs(2*wheelNecc/rps)
+        #print("timeSleep =", timeSleep)
+
         #Serial read to confirm completion 
-        time.sleep(2) #Pauses to avoid reading before motors have actually started moving
+        time.sleep(timeSleep) #Pauses to avoid reading before motors have actually started moving
         busy = False
         while not busy:
             ser.write(b'hub.port.A.motor.get()[0]\r\n')
             reply = ser.readline()
             val = reply.decode() #Check this
-            
+            #print("val Rotate = ", val[0])
             if (val[0] == '0'):
                 busy = True
 
             time.sleep(0.01)
-
-
-
+                 
+    #print("Done Rotating")
+        
 
 #--------Variable Setups--------#
-global diam, pwmVal, WheelDist
+global diam, pwmVal, WheelDist, pwmMax
 
 diam = 0.055 #Diameter of the wheels in Meters
 pwmVal = 45 #pwm to set default motor speed. -100 to 100
+rpmEst = 145 #Estimate rmp for small motors under current load. Stall torque = 0, no torque = 185.
 WheelDist = 0.143 #Distance between the centers of the wheels (axle distance)
 
 DesAng = float(sys.argv[1]) #Rotating angle. Positive for clockwise, negative for counterclockwise
@@ -154,9 +168,9 @@ NeccRot = RotVari(diam, WheelDist) #Calculate rotation ratio for the specific ro
 
 
 #--------MAIN CODE--------#
-RotateSPIKE(DesAng, NeccRot) #SPIKE will rotate first, then linearate
-LinearSPIKE(DesDist)
 
-time.sleep(0.1)
+RotateSPIKE(DesAng, NeccRot) #SPIKE will rotate first, then linearate
+time.sleep(.1)
+LinearSPIKE(DesDist)
 
 endSerial() #Close serial port to SPIKE
