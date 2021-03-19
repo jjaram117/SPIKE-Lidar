@@ -1,4 +1,4 @@
-the next step from the EV3-Lidar undergraduate research project. 
+The next step from the EV3-Lidar undergraduate research project. 
 
 These scripts work in unison to communicate, mobilize, and visualize a LEGO SPIKE Prime robotics platform along with a Slamtec RPlidar sensor, and a Raspberry Pi 4 acting as the control computer. 
 
