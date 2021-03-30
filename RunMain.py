@@ -125,7 +125,7 @@ def TransformData(x,y, DesAng, DesDist): #Implements matrix and linear transform
     return x_transf, y_transf
 
 
-def TransformAutoData(x,y, DesAng, DesDist): #Implements matrix and linear transforms when detecting physical movement
+def TransformAutoData(x,y, DesAng, DesDist): #Implements matrix and linear transforms after a move in either autonomous mode
     #Preallocation for rotational transformed values
     x_transf = [0]*len(x)
     y_transf = [0]*len(y)
@@ -137,7 +137,7 @@ def TransformAutoData(x,y, DesAng, DesDist): #Implements matrix and linear trans
     if lidar_ang >= 360: 
         lidar_ang = lidar_ang - 360
 
-    elif lidar_ang <= -360: #Shouldn't actually enter this path unless a more efficient turning system us put in place
+    elif lidar_ang <= -360: #Shouldn't actually enter this path unless a more efficient turning system is implmented later on
         lidar_ang = lidar_ang + 360
 
     else:
@@ -151,11 +151,11 @@ def TransformAutoData(x,y, DesAng, DesDist): #Implements matrix and linear trans
     y_move = y_move + math.sin(DesAng_R)*DesDist
 
     for i in range(len(x)): #Apply first rotational then linear transforms to all values 
-        x_transf[i] = x[i]*math.cos(DesAng_R) + y[i]*math.sin(DesAng_R)*-1
-        x_transf[i] = x_transf[i] + x_move
+        x_transf[i] = x[i]*math.cos(DesAng_R) + y[i]*math.sin(DesAng_R)*-1 #Rotational transforms
+        x_transf[i] = x_transf[i] + x_move #Linear transforms
         
-        y_transf[i] = x[i]*math.sin(DesAng_R) + y[i]*math.cos(DesAng_R)
-        y_transf[i] = y_transf[i] + y_move
+        y_transf[i] = x[i]*math.sin(DesAng_R) + y[i]*math.cos(DesAng_R) #Rotational transforms
+        y_transf[i] = y_transf[i] + y_move #Linear transforms
 
     
     return x_transf, y_transf
@@ -252,10 +252,68 @@ def SaveData():
 
     print('Your file has been saved as', name,'\n')
     time.sleep(2)
+    
 
-def CalcMove(a, d): #Uses the data from GrabPts to determine what angle to rotate to and distance to travel
-    DistThresh = .5 #Minimum distance threshold for function to base calculations. Distance in meters  
-    AngStep = 30 #Step size for determining which measured distances are farther away
+def CalcMoveSwift(a, d): #Uses the data from GrabPts to determine what angle to rotate to and distance to travel
+    global DistThresh, AngStep
+
+    DistIdeal = DistThresh*1.5 #Value used to determine if SPIKE moves in that given direction based on surpassing an ideal threshold
+
+    #Attempt to calculate indices. Otherwise, return a "False" Flag 
+    try:
+        indx = [idx for idx, val in enumerate(d) if val > DistThresh] #Gives indices of list "d" where values are above DistThresh
+
+        #Grab angle and distance values that correspond with index values we calculated
+        a_thresh = list(itemgetter(*indx)(a)) 
+        d_thresh = list(itemgetter(*indx)(d)) 
+
+        #Sort the a and d lists together as soon as they come in to avoid data mixups. Sort ascendingly according to a
+        sorted_lists = sorted(zip(a_thresh, d_thresh))
+
+        tuples = zip(*sorted_lists)
+        a_sorted, d_sorted = [ list(tuple) for tuple in  tuples] #Splits up newly sorted lists        
+        
+    except: #What to do if try statement fails
+        print("SUPREME FAILURE")
+        success = False
+        DesAng = 0 
+        DesDist = 0
+
+        return success, DesAng, DesDist
+
+
+    ##----Iterate to find the first cluster where median distance surpasses DistIdeal
+    i = a_sorted[0] #Start at the minimum angle filtered in the previous step
+    MaxDist = 0 #Keeps track of the farthest distance calculated. Used in case DistIdeal is never surpassed 
+    LoopCount = 0 #Used to track which loop iteration loop exited on
+
+    while i <= a_sorted[-1]: #While loop runs until angle step surpasses maximum angle filtered by previous step        
+        CurrElements = [t for t, x in enumerate(a_sorted) if i <= x < i+AngStep] #Finds indices in a_sorted where values fall within certain range
+
+        try:
+            medDist = statistics.median(itemgetter(*CurrElements)(d_sorted))
+            LoopCount += 1
+        except:
+            medDist = 0
+            LoopCount += 1
+
+        if medDist >= DistIdeal:
+            DesAng = round((i)+(AngStep/2)) #Should be whatever angle "i" we're on, plus half of AngStep to go straight down the middle
+            DesDist = round(medDist*.8, 1) #Go X% of whatever the desired distance was calculated to be
+            break
+
+        else: 
+            i += AngStep
+
+            if medDist >= MaxDist: #Update MaxDist with the current medDist if it's larger.
+                MaxDist = medDist
+
+    success = True
+    return success, DesAng, DesDist
+
+
+def CalcMoveEffective(a, d): #Uses the data from GrabPts to determine what angle to rotate to and distance to travel
+    global DistThresh, AngStep
 
     #Attempt to calculate indices. Otherwise, return a "False" Flag 
     try:
@@ -447,42 +505,87 @@ def opt6(): #Automated Mode
     x_move = 0 
     y_move = 0
 
-    x_globalCoord = [] #Running variables where that we're appending the data from each cycle to and will ultimately filter through and plot
+    x_globalCoord = [] #Running variables  we're appending the data from each cycle to. Reset each time Auto Mode is run
     y_globalCoord = []
 
+    while True: #Will keep running until the a valid entry is usedor the user decides to return to the Options Table
+        autoVersion = input("Enter 's' to use the 'Swift' version of autonomous mode. Enter 'e' to use the 'Effective' version of autonomous mode.\nEnter 'r' if you wish to return to the Options Table.\n")
+        
+        if autoVersion.lower() == 's':
+            for i in range(cycles):
+                success = False
 
+                while not success:
+                    #Lidar intialization and data grab
+                    LidarComm()
+                    (x,y,a,d) = GrabPts(4000)
+                    serialComm(Stop_Scan)
+                    ser.read(ser.inWaiting()) #Flush the buffer
 
-    for i in range(cycles):
-        success = False
+                    success, DesAng, DesDist = CalcMoveSwift(a, d) #How much to rotate and move, based on the 
+                    
+                    if not success: #"CalcMove" function calculates a failure, will reattempt 
+                        print('Reattempting Calculations')
+                        continue
 
-        while not success:
-            #Lidar intialization and data grab
-            LidarComm()
-            (x,y,a,d) = GrabPts(2000)
-            serialComm(Stop_Scan)
-            ser.read(ser.inWaiting()) #Flush the buffer
+                    print("\nWill rotate %f Degrees" % DesAng)
+                    print("Will travel %f meters forward" % DesDist)
 
-            success, DesAng, DesDist = CalcMove(a, d) #How much to rotate and move, based on the 
+                    (x_transf, y_transf) = TransformAutoData(x,y, DesAng, DesDist) #After each successful GrabPts instance, tranform all points accordingly
+
+                    #Updating the global coordinate lists for final plotting (After transformed correctly)
+                    x_globalCoord = x_globalCoord + a
+                    y_globalCoord = y_globalCoord + d
+
+                    RunSPIKE(DesAng, DesDist)
+                    time.sleep(0.5)
             
-            if not success: #"CalcMove" function calculates a failure, will reattempt 
-                print('Reattempting Calculations')
-                continue
+            print("\nNow generating your global plot...\n")
+            plotter(x_globalCoord, y_globalCoord)
+            break
+                    
+        elif autoVersion.lower() == 'e':
+            for i in range(cycles):
+                success = False
 
-            print("\nWill rotate %f Degrees" % DesAng)
-            print("Will travel %f meters forward" % DesDist)
+                while not success:
+                    #Lidar intialization and data grab
+                    LidarComm()
+                    (x,y,a,d) = GrabPts(4000)
+                    serialComm(Stop_Scan)
+                    ser.read(ser.inWaiting()) #Flush the buffer
 
-            (x_transf, y_transf) = TransformAutoData(x,y, DesAng, DesDist) #After each successful GrabPts instance, tranform all points accordingly
+                    success, DesAng, DesDist = CalcMoveEffective(a, d) #How much to rotate and move, based on the 
+                    
+                    if not success: #"CalcMove" function calculates a failure, will reattempt 
+                        print('Reattempting Calculations')
+                        continue
 
-            #Updating the global coordinate lists for final plotting (After transformed correctly)
-            x_globalCoord = x_globalCoord + a
-            y_globalCoord = y_globalCoord + d
+                    print("\nWill rotate %f Degrees" % DesAng)
+                    print("Will travel %f meters forward" % DesDist)
+
+                    (x_transf, y_transf) = TransformAutoData(x,y, DesAng, DesDist) #After each successful GrabPts instance, tranform all points accordingly
+
+                    #Updating the global coordinate lists for final plotting (After transformed correctly)
+                    x_globalCoord = x_globalCoord + a
+                    y_globalCoord = y_globalCoord + d
+
+                    RunSPIKE(DesAng, DesDist)
+                    time.sleep(0.5)
+            
+            print("\nNow generating your global plot...\n")
+            plotter(x_globalCoord, y_globalCoord)
+            break
+            
+        elif autoVersion.lower() == 'r':
+            break
+        
+        else:
+            print('\nNot a valid input, please try again\n')
+            time.sleep(0.5)
+            continue
 
 
-            RunSPIKE(DesAng, DesDist)
-            time.sleep(6)
-
-    print("\nNow generating your global plot...\n")
-    plotter(x_globalCoord, y_globalCoord)
 
 
 ##----------------------------SETUPS----------------------------##
@@ -502,8 +605,11 @@ serialComm(motorSpeed)
 time.sleep(2) #Motor spin up
 
 #Initializing localization variables to keep track of lidar location relative to starting point of 0,0. Will globalize
-global lidar_ang
+global lidar_ang, DistThresh, AngStep
 lidar_ang = 0
+DistThresh = 0.5 #Minimum distance threshold for calcMove functions to base calculations. Distance in meters. Use lower values for smaller environments    
+AngStep = 30 #Step size (in degrees) for both calcMoveEffective and calcMoveSwift functions. 30 degrees is typically appropriate
+
 
 inp = 0 #setting up the variable for the input
 
