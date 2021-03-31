@@ -307,17 +307,20 @@ def MedianDist(a,d,tol):
 
 
 def SaveData():
-    name = str(input('What would you like to name your file? (Do not inlude the file type, just the file name)\n')) #
+    name = str(input('What would you like to name your file and figure? Both will be named the same thing. (Do not inlude the file type, just the file name)\n\n'))
     
     #Saving all data to the named .csv file
-    filename = "/home/pi/Desktop/Lidar/SPIKE-Lidar" + name + ".csv" #Rename folder address as desired 
+    figurename = "/home/pi/Desktop/Lidar/" + name + ".png" #Save address for figure. Change as desired
+    filename = "/home/pi/Desktop/Lidar/" + name + ".csv" #Rename folder address as desired 
     with open(filename, 'a', newline='') as f:
             writer = csv.writer(f, delimiter = ',')
             writer.writerows(zip(x,y,a,d))
     time.sleep(.1)
 
-    print('Your file has been saved as', name,'\n')
-    time.sleep(2)
+    plt.savefig(figurename)
+
+    print('Your .csv file and figure have been saved as', name,'\n')
+    time.sleep(1.5)
     
 
 def CalcMoveSwift(a, d): #Uses the data from GrabPts to determine what angle to rotate to and distance to travel
@@ -485,7 +488,7 @@ def opt2(): #Close Current figure
     else:
         print("Not an available option\n")
 
-def opt3(): #Save current data to a .csv file
+def opt3(): #Save current data and figure to a .csv file
     SaveData()
 
 
@@ -689,7 +692,7 @@ inp = 0 #setting up the variable for the input
 
 ##----------------------------MAIN LOOP----------------------------##
 while True:
-    inp = input('    \nOPTIONS TABLE: What would you like to do? \n1 = Move SPIKE and Grab Data \n2 = Close Current Figure and Reset Global Coordinates \n3 = Save current (x,y,a,d) data to named file \n4 = For Testing: Calculate distance after move \n5 = Stop Lidar and end program \n6 = Run Automated Mode \n\n')
+    inp = input('    \nOPTIONS TABLE: What would you like to do? \n1 = Move SPIKE and Grab Data \n2 = Close Current Figure and Reset Global Coordinates \n3 = Save current (x,y,a,d) data and figure to file \n4 = For Testing: Calculate distance after move \n5 = Stop Lidar and end program \n6 = Run Automated Mode \n\n')
     time.sleep(.5)
 
     if inp == '1': #Request lidar to collect data
