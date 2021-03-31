@@ -91,41 +91,107 @@ def GrabPts(num):
                 run += 1
     return (x,y,a,d)
 
-def TransformData(x,y, DesAng, DesDist): #Implements matrix and linear transforms when detecting physical movement
+def TransformData(x,y, DesAng, DesDist): #Implements rotational and linear transforms when calling Opt1
     #Preallocation for the transformed values
     x_transf = [0]*len(x)
     y_transf = [0]*len(y)
+    
+    global lidar_ang, x_move, y_move #Call in the recently reset global variables
 
-    if DesAng != 0: #Rotational transforms for all points based on the Desired Angle to rotate input
-        global lidar_ang
-        lidar_ang = lidar_ang + DesAng #Should update the global variable tracking rotation relative to starting point
+    lidar_ang = lidar_ang + DesAng #Should update the global variable tracking rotation relative to starting point
         
-        #convert angle to radians
-        DesAng_R = lidar_ang*0.0174533
+    #Reducing lidar_ang to within [-360, 360] to calculate with smaller values       
+    if lidar_ang > 360: 
+        lidar_ang = lidar_ang - 360
 
+    elif lidar_ang < -360: 
+        lidar_ang = lidar_ang + 360
+            
+    else:
+        pass
+    
+    #Convert lidar_ang to radians
+    DesAng_R = lidar_ang*0.0174533
+        
+        
+    #Possible branches based on DesDist and DesAng
+    if DesAng != 0 and DesDist != 0: #Determine if both rotation and linear movement are desired.           
+        print('both')
+        #Update how much movement has occurred in x and y relative to the starting point            
+        x_move = x_move + math.cos(DesAng_R)*DesDist
+        y_move = y_move + math.sin(DesAng_R)*DesDist
+        
+        for i in range(len(x)): #Calculate all of the transforms
+            x_transf[i] = x[i]*math.cos(DesAng_R) + y[i]*math.sin(DesAng_R)*-1 #Rotational transforms
+            x_transf[i] = x_transf[i] + x_move #Linear transforms
+            
+            y_transf[i] = x[i]*math.sin(DesAng_R) + y[i]*math.cos(DesAng_R) #Rotational transforms
+            y_transf[i] = y_transf[i] + y_move #Linear transforms
+
+    elif DesAng != 0 and DesDist == 0: #Only desire rotational movement
+        print('only angle')
         for i in range(len(x)): #Calculate all of the transforms 
             x_transf[i] = x[i]*math.cos(DesAng_R) + y[i]*math.sin(DesAng_R)*-1
             y_transf[i] = x[i]*math.sin(DesAng_R) + y[i]*math.cos(DesAng_R)
-
-        if lidar_ang > 360: #Reducing the lidar_ang to within [-360, 360] to calculate with smaller values
-            lidar_ang = lidar_ang - 360
-
-        elif lidar_ang < 360: 
-            lidar_ang = lidar_ang + 360
-
-        else:
-            pass 
-
-        #print(lidar_ang)
+            
+    elif DesAng == 0 and DesDist != 0: #Determine if linear movement is desired. If so, perform necessary transforms
+        print('only linear')
+        #Update how much movement has occurred in x and y relative to the starting point            
+        x_move = x_move + math.cos(0)*DesDist
+        y_move = y_move + math.sin(0)*DesDist
+       
+        for i in range(len(x)): #Calculate all of the transforms
+            x_transf[i] = x[i] + x_move #Linear transforms
+            y_transf[i] = y[i] + y_move #Linear transforms
+            
     else:
         pass
+            
 
-    #if DesDist != 0: #Linear transforms for all points based on the Desired Distance input
-
+#    if DesAng != 0: #Determine if rotation is desired. If so, perform necessary transforms for all points
+#        lidar_ang = lidar_ang + DesAng #Should update the global variable tracking rotation relative to starting point
+#        
+#        if lidar_ang > 360: #Reducing lidar_ang to within [-360, 360] to calculate with smaller values
+#            lidar_ang = lidar_ang - 360
+#
+#        elif lidar_ang < -360: 
+#            lidar_ang = lidar_ang + 360
+#            
+#        else:
+#            pass            
+#        
+#        #Convert lidar_ang to radians
+#        DesAng_R = lidar_ang*0.0174533
+#
+#        for i in range(len(x)): #Calculate all of the transforms 
+#            x_transf[i] = x[i]*math.cos(DesAng_R) + y[i]*math.sin(DesAng_R)*-1
+#            y_transf[i] = x[i]*math.sin(DesAng_R) + y[i]*math.cos(DesAng_R)
+#            
+#    else:
+#        pass
+#    
+#    if DesDist != 0: #Determine if linear movement is desired. If so, perform necessary transforms
+#        #Convert lidar_ang to radians
+#        DesAng_R = lidar_ang*0.0174533
+#        
+#        #Update how much movement has occurred in x and y relative to the starting point            
+#        x_move = x_move + math.cos(DesAng_R)*DesDist
+#        y_move = y_move + math.sin(DesAng_R)*DesDist
+#       
+#        for i in range(len(x)): #Calculate all of the transforms
+#            x_transf[i] = x[i] + x_move #Linear transforms
+#            y_transf[i] = y[i] + y_move #Linear transforms
+#        
+#    else:
+#        pass
+#
+#    #print(x_transf)
+#    print("x_move = ", x_move)
+#    print("y_move = ",y_move)
     return x_transf, y_transf
 
 
-def TransformAutoData(x,y, DesAng, DesDist): #Implements matrix and linear transforms after a move in either autonomous mode
+def TransformAutoData(x,y, DesAng, DesDist): #Implements matrix and linear transforms after a move in either autonomous mode version
     #Preallocation for rotational transformed values
     x_transf = [0]*len(x)
     y_transf = [0]*len(y)
@@ -369,7 +435,7 @@ def CalcMoveEffective(a, d): #Uses the data from GrabPts to determine what angle
     
 def opt1(): #Request movement information, then Grab Data
     global x,y,a,d
-
+    
     print('    \nPositive angles rotate clockwise, negatives counterclockwise. Positive values move forwards, negatives move backwards.     \nUnits are in degrees and meters, respectively.     \nThe SPIKE will rotate first, then move.')
     time.sleep(1)
     
@@ -401,12 +467,17 @@ def opt1(): #Request movement information, then Grab Data
 
 
 def opt2(): #Close Current figure
-    print('Are you sure you want to clear the current figure? y/n\n')
+    print('Are you sure you want to clear the current figure and reset global coordinates? y/n\n')
     act = input()
 
     if act.lower() == 'y':
         plt.close()
-    
+        
+        global lidar_ang, x_move, y_move #Used to track how much we've rotated and moved relative to the starting point. Resets when the figure closes (Option 2)
+        lidar_ang = 0 
+        x_move = 0 
+        y_move = 0
+        
     elif act.lower() == 'n':
         print('\nPlot will not be cleared')
         time.sleep(0.5)
@@ -604,27 +675,27 @@ motorSpeed = Motor + b'\x02'+struct.pack('<H',speed)  # 2 byte payload, little e
 serialComm(motorSpeed)
 time.sleep(2) #Motor spin up
 
-#Initializing localization variables to keep track of lidar location relative to starting point of 0,0. Will globalize
-global lidar_ang, DistThresh, AngStep
-lidar_ang = 0
+#Initializing localization variables to keep track of lidar location relative to starting point of 0,0.
+global lidar_ang, DistThresh, AngStep, x_move, y_move
+lidar_ang = 0 #How much lidar has rotated in local environment. Resets throughout the program
+x_move = 0 #Tracks how much movement has occurred in x axis relative to the starting points
+y_move = 0 #Tracks how much movement has occurred in y axis relative to the starting points
+
 DistThresh = 0.5 #Minimum distance threshold for calcMove functions to base calculations. Distance in meters. Use lower values for smaller environments    
 AngStep = 30 #Step size (in degrees) for both calcMoveEffective and calcMoveSwift functions. 30 degrees is typically appropriate
 
-
 inp = 0 #setting up the variable for the input
-
-
-
+    
 
 ##----------------------------MAIN LOOP----------------------------##
 while True:
-    inp = input('    \nOPTIONS TABLE: What would you like to do? \n1 = Move SPIKE and Grab Data \n2 = Close Current Figure \n3 = Save current (x,y,a,d) data to named file \n4 = For Testing: Calculate distance after move \n5 = Stop Lidar and end program \n6 = Run Automated Mode \n\n')
+    inp = input('    \nOPTIONS TABLE: What would you like to do? \n1 = Move SPIKE and Grab Data \n2 = Close Current Figure and Reset Global Coordinates \n3 = Save current (x,y,a,d) data to named file \n4 = For Testing: Calculate distance after move \n5 = Stop Lidar and end program \n6 = Run Automated Mode \n\n')
     time.sleep(.5)
 
     if inp == '1': #Request lidar to collect data
         opt1()        
 
-    if inp == '2': #Close Current figure
+    if inp == '2': #Close Current figure, reset global coordinates
         opt2()
 
     elif inp == '3': #Copy current "currData" file to a new local .csv file 
