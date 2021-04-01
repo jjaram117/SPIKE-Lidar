@@ -347,8 +347,7 @@ def CalcMoveSwift(a, d): #Uses the data from GrabPts to determine what angle to 
         success = False
         DesAng = 0 
         DesDist = 0
-
-    return success, DesAng, DesDist
+        return success, DesAng, DesDist
 
 
     ##----Iterate to find the first cluster where median distance surpasses DistIdeal
