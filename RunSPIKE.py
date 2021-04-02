@@ -17,9 +17,9 @@ def startSerial(): #Creates serial connection to the port the SPIKE is plugged i
 def endSerial(): #End the communciation with the SPIKE. Likely only when the program is turned off
     ser.close()
 
-def NecSetups(): #Sends commands to the SPIKE REPL necessary setups: libraries, motorpair setup
-    ser.write(b'import hub\r\n') 
-    ser.write(b'p = hub.port.A.motor.pair(hub.port.B.motor)') #Switch out the 'A' and 'B' depending on the ports motors are attached to
+#def NecSetups(): #Sends commands to the SPIKE REPL necessary setups: libraries, motorpair setup
+ #   ser.write(b'import hub\r\n') 
+  #  ser.write(b'p = hub.port.A.motor.pair(hub.port.B.motor)') #Switch out the 'A' and 'B' depending on the ports motors are attached to
 
 #Physical build functions
 def Convert(DesDist, diam, calibVal): #Conversion from Desired Distance (DesDist) to number of rotations (NumRot) to number of degrees(NumDegrees) motors need to spin
