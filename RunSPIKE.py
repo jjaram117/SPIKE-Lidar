@@ -152,7 +152,7 @@ def RotateSPIKE(DesAng, NeccRot): #Rotate SPIKE to the desired angle. Calculates
         
 
 #--------Variable Setups--------#
-global diam, pwmVal, WheelDist, pwmMax
+global diam, pwmVal, WheelDist, rpmEst
 
 diam = 0.055 #Diameter of the wheels in Meters
 pwmVal = 45 #pwm to set default motor speed. -100 to 100
